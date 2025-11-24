@@ -36,37 +36,8 @@ git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
 
 ## Installation
 
-### Using Make (recommended)
-
 ```bash
-git clone https://github.com/qawatake/gw.git
-cd gw
-make install
-```
-
-This will build the binary and install it to `~/bin/gw`.
-
-### Build from source manually
-
-```bash
-git clone https://github.com/qawatake/gw.git
-cd gw
-go build -o ~/bin/gw ./cmd/gw
-```
-
-### Available Make targets
-
-```bash
-make build        # Build the binary to bin/gw
-make install      # Build and install to ~/bin
-make uninstall    # Remove from ~/bin
-make clean        # Remove build artifacts
-make test         # Run tests
-make fmt          # Format code
-make tidy         # Tidy dependencies
-make lint         # Run linter (requires golangci-lint)
-make build-all    # Build for all platforms
-make help         # Show help message
+go install github.com/qawatake/gw/cmd/gw@latest
 ```
 
 ### Shell integration
