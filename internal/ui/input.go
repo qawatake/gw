@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,26 +83,50 @@ func SelectWithPeco(items []string) (string, error) {
 
 	// Run peco
 	cmd := exec.Command("peco")
-	cmd.Stdin, err = os.Open(tmpfile.Name())
-	if err != nil {
-		return "", fmt.Errorf("failed to open temp file: %w", err)
-	}
-	defer cmd.Stdin.(*os.File).Close()
 
-	cmd.Stderr = os.Stderr
-
-	// Get peco's TTY for proper display
+	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
-	if err == nil {
-		cmd.Stdin = tty
-		cmd.Stdout = tty
-		defer tty.Close()
+	if err != nil {
+		return "", fmt.Errorf("failed to open TTY: %w", err)
+	}
+	defer tty.Close()
+
+	// Set up pipes before starting
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
 
-	// Create a pipe to capture peco output
-	output, err := cmd.Output()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return "", fmt.Errorf("failed to run peco: %w", err)
+		return "", fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	// peco displays UI on stderr and reads keyboard input from TTY
+	cmd.Stderr = tty
+
+	// Start peco
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("failed to start peco: %w", err)
+	}
+
+	// Write items to stdin
+	go func() {
+		defer stdin.Close()
+		for _, item := range items {
+			fmt.Fprintln(stdin, item)
+		}
+	}()
+
+	// Read stdout
+	output, err := io.ReadAll(stdout)
+	if err != nil {
+		return "", fmt.Errorf("failed to read output: %w", err)
+	}
+
+	// Wait for peco to finish
+	if err := cmd.Wait(); err != nil {
+		return "", fmt.Errorf("peco failed: %w", err)
 	}
 
 	result := strings.TrimSpace(string(output))
