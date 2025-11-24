@@ -5,16 +5,16 @@ A convenient command-line tool to manage git worktrees efficiently.
 ## Features
 
 - **add**: Create a new branch and corresponding worktree with interactive naming
-- **list**: Display all worktrees sorted by recent activity
+- **list** (alias: **ls**): Display all worktrees sorted by recent activity
 - **cd**: Interactively select and navigate to a worktree
-- **clean**: Interactively select and remove multiple worktrees
+- **rm**: Interactively select and remove multiple worktrees with their branches
 
 ## Requirements
 
 - Go 1.24 or later
 - Git
 - peco (for `gw cd` command)
-- fzf (for `gw clean` command, optional - falls back to peco)
+- fzf (for `gw rm` command, optional - falls back to peco)
 - vim or $EDITOR (for `gw add` command)
 
 ### Installing dependencies
@@ -106,12 +106,12 @@ The branch name will automatically be prefixed with `qwtk/YYYY/MM/DD/` (configur
 
 Worktrees are organized by repository name under `~/.worktrees/{repo-name}/` to keep multiple projects organized.
 
-### `gw list`
+### `gw list` (alias: `gw ls`)
 
 Display all worktrees sorted by date (newest first).
 
 ```bash
-$ gw list
+$ gw list  # or gw ls
 qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
 qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
 main                              ~/src/myproject
@@ -128,16 +128,18 @@ $ gw cd
 # Your shell will cd to the selected worktree
 ```
 
-### `gw clean`
+### `gw rm`
 
-Interactively select and remove worktrees using fzf (or peco as fallback).
+Interactively select and remove worktrees (and their branches) using fzf (or peco as fallback).
 
 ```bash
-$ gw clean
+$ gw rm
 # Opens fzf with worktree list (or peco if fzf not available)
+# Note: Main worktree is not shown (cannot be removed)
 # With fzf: Press Space to select/deselect, Enter to confirm
-# With peco: Select one at a time, cancel to finish
+# With peco: Select one at a time, choose "Done" to finish
 # Confirms before deletion
+# Removes both worktree and associated branch
 ```
 
 ## Configuration
@@ -193,10 +195,11 @@ $ pwd
 ### Cleaning up old worktrees
 
 ```bash
-$ gw clean
-# Select multiple worktrees with Space
-# Press Enter, confirm with 'y'
-# Selected worktrees are removed
+$ gw rm
+# With fzf: Select multiple worktrees with Space, press Enter
+# With peco: Select one at a time, choose "Done" when finished
+# Confirm with 'y'
+# Selected worktrees and their branches are removed
 ```
 
 ## How it works

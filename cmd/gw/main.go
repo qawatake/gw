@@ -30,7 +30,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-	case "list":
+	case "list", "ls":
 		if err := runList(args); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -40,8 +40,8 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-	case "clean":
-		if err := runClean(args); err != nil {
+	case "rm":
+		if err := runRM(args); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -58,9 +58,9 @@ func printUsage() {
 	fmt.Println("Usage:")
 	fmt.Println("  gw init               Initialize shell wrapper")
 	fmt.Println("  gw add                Create a new branch and worktree")
-	fmt.Println("  gw list               List all worktrees")
+	fmt.Println("  gw list (ls)          List all worktrees")
 	fmt.Println("  gw cd                 Change directory to a worktree")
-	fmt.Println("  gw clean              Remove selected worktrees")
+	fmt.Println("  gw rm                 Remove selected worktrees")
 }
 
 func runInit(args []string) error {
@@ -164,7 +164,7 @@ func runCD(args []string) error {
 	return nil
 }
 
-func runClean(args []string) error {
+func runRM(args []string) error {
 	// Get worktree list
 	allWorktrees, err := worktree.List()
 	if err != nil {

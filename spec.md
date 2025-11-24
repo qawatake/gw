@@ -31,7 +31,7 @@ git worktreeを便利にラップするコマンドラインツール
 - `~/bin/git-c`: ブランチ名のプレフィックス形式
 - `~/bin/vcat`: インタラクティブな入力の受け取り方
 
-### `gw list`
+### `gw list` (alias: `gw ls`)
 
 worktreeの一覧を表示する。
 
@@ -45,6 +45,10 @@ worktreeの一覧を表示する。
 
 - `~/bin/git-swt` と同じく、`--sort=-authordate` 相当の順序
 - 最近作業したworktreeが上に来るようにする
+
+#### エイリアス
+
+- `gw ls` でも同じ動作をする（短縮形）
 
 ### `gw cd`
 
@@ -80,7 +84,7 @@ eval "$(gw init)"
 - Zsh
 - Fish（構文が異なるため個別対応）
 
-### `gw clean`
+### `gw rm` (旧: `gw clean`)
 
 不要なworktreeを削除する。
 
@@ -146,7 +150,7 @@ $ gw add
 # → worktree を ~/.worktrees/gw/qwtk-2025-11-23-feature-login に作成
 
 # worktree一覧
-$ gw list
+$ gw list  # または gw ls
 qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
 qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
 main                              ~/src/myproject
@@ -156,6 +160,7 @@ $ gw cd
 # pecoで選択 → 選択したディレクトリに移動
 
 # worktreeを削除
-$ gw clean
-# スペースキーで複数選択 → エンターで削除確認 → 削除実行
+$ gw rm
+# fzf: スペースキーで複数選択 → エンターで削除確認 → 削除実行
+# peco: 1つずつ選択、"Done"で確定 → 削除確認 → 削除実行
 ```
