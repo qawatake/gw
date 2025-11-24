@@ -14,7 +14,7 @@ A convenient command-line tool to manage git worktrees efficiently.
 - Go 1.24 or later
 - Git
 - peco (for `gw cd` command)
-- fzf (for `gw clean` command)
+- fzf (for `gw clean` command, optional - falls back to peco)
 - vim or $EDITOR (for `gw add` command)
 
 ### Installing dependencies
@@ -99,10 +99,12 @@ $ gw add
 # Opens your editor (vim by default)
 # Enter branch name, e.g., "feature-login"
 # Creates branch: qwtk/2025/11/23/feature-login
-# Creates worktree at: ~/.worktrees/qwtk-2025-11-23-feature-login
+# Creates worktree at: ~/.worktrees/gw/qwtk-2025-11-23-feature-login
 ```
 
 The branch name will automatically be prefixed with `qwtk/YYYY/MM/DD/` (configurable via `GW_BRANCH_PREFIX`).
+
+Worktrees are organized by repository name under `~/.worktrees/{repo-name}/` to keep multiple projects organized.
 
 ### `gw list`
 
@@ -110,8 +112,8 @@ Display all worktrees sorted by date (newest first).
 
 ```bash
 $ gw list
-qwtk/2025/11/23/feature-login    ~/.worktrees/qwtk-2025-11-23-feature-login
-qwtk/2025/11/22/bugfix-auth      ~/.worktrees/qwtk-2025-11-22-bugfix-auth
+qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
+qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
 main                              ~/src/myproject
 ```
 
@@ -128,13 +130,13 @@ $ gw cd
 
 ### `gw clean`
 
-Interactively select and remove worktrees using fzf.
+Interactively select and remove worktrees using fzf (or peco as fallback).
 
 ```bash
 $ gw clean
-# Opens fzf with worktree list
-# Press Space to select/deselect worktrees
-# Press Enter to confirm selection
+# Opens fzf with worktree list (or peco if fzf not available)
+# With fzf: Press Space to select/deselect, Enter to confirm
+# With peco: Select one at a time, cancel to finish
 # Confirms before deletion
 ```
 
@@ -176,7 +178,7 @@ The `{date}` placeholder will be replaced with the current date in `YYYY/MM/DD` 
 $ gw add
 # Enter "user-authentication" in editor
 # Creates: qwtk/2025/11/23/user-authentication
-# Path: ~/.worktrees/qwtk-2025-11-23-user-authentication
+# Path: ~/.worktrees/gw/qwtk-2025-11-23-user-authentication
 ```
 
 ### Switching between worktrees
@@ -185,7 +187,7 @@ $ gw add
 $ gw cd
 # Select from list using peco
 $ pwd
-/Users/username/.worktrees/qwtk-2025-11-23-user-authentication
+/Users/username/.worktrees/gw/qwtk-2025-11-23-user-authentication
 ```
 
 ### Cleaning up old worktrees
