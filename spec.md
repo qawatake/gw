@@ -18,12 +18,15 @@ git worktreeを便利にラップするコマンドラインツール
    - 標準入力を一時ファイルに保存
    - エディタ（vim）で編集
    - 編集内容をブランチ名として使用
-2. ブランチ名のプレフィックスは `qwtk/YYYY/MM/DD/` 形式（git-cと同じ）
+2. ブランチ名のプレフィックスは `{user}/YYYY/MM/DD/` 形式
+   - `{user}` は `git config user.name` から取得（小文字化・スペースをハイフンに変換）
+   - user.nameが設定されていない場合はエラー
+   - 環境変数 `GW_BRANCH_PREFIX` で上書き可能
 3. worktreeのディレクトリ名はブランチ名から生成
    - スラッシュをハイフンに置換するなど、ファイルシステム用に正規化
 4. worktreeを作成
    - リポジトリのdirname（例: `gw`）を親ディレクトリとする
-   - パス例: `~/.worktrees/gw/qwtk-2025-11-24-feature-login`
+   - パス例: `~/.worktrees/gw/sample-user-2025-11-24-feature-login`
    - これにより複数のリポジトリのworktreeを整理して管理できる
 
 #### 実装の参考
@@ -131,7 +134,9 @@ eval "$(gw init)"
 
 - `GW_WORKTREE_ROOT`: worktreeを作成する親ディレクトリ（デフォルト: `~/.worktrees`）
 - `GW_EDITOR`: 使用するエディタ（デフォルト: `$EDITOR` または `vim`）
-- `GW_BRANCH_PREFIX`: ブランチ名のプレフィックス形式（デフォルト: `qwtk/{date}/`）
+- `GW_BRANCH_PREFIX`: ブランチ名のプレフィックス形式（デフォルト: `{git-user-name}/{date}/`）
+  - `{date}` は自動的に `YYYY/MM/DD` に置換される
+  - デフォルトでは `git config user.name` を小文字化してスペースをハイフンに変換したもの
 
 ## インストール
 
@@ -146,14 +151,14 @@ echo 'eval "$(gw init)"' >> ~/.bashrc  # or ~/.zshrc
 # 新しいworktreeを作成
 $ gw add
 # エディタが開く → "feature-login" と入力
-# → ブランチ "qwtk/2025/11/23/feature-login" を作成
-# → worktree を ~/.worktrees/gw/qwtk-2025-11-23-feature-login に作成
+# → ブランチ "sample-user/2025/11/24/feature-login" を作成（user.nameに基づく）
+# → worktree を ~/.worktrees/gw/sample-user-2025-11-24-feature-login に作成
 
 # worktree一覧
 $ gw list  # または gw ls
-qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
-qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
-main                              ~/src/myproject
+sample-user/2025/11/24/feature-login    ~/.worktrees/gw/sample-user-2025-11-24-feature-login
+sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/sample-user-2025-11-23-bugfix-auth
+main                                          ~/src/myproject
 
 # worktreeに移動
 $ gw cd

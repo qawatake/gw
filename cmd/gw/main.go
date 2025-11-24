@@ -84,7 +84,10 @@ func runAdd(args []string) error {
 	}
 
 	// Generate full branch name with prefix
-	branchName := branch.GenerateBranchName(name)
+	branchName, err := branch.GenerateBranchName(name)
+	if err != nil {
+		return err
+	}
 	fmt.Printf("Creating branch: %s\n", branchName)
 
 	// Get worktree root directory

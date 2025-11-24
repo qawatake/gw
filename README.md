@@ -98,11 +98,11 @@ Create a new branch and worktree with interactive naming.
 $ gw add
 # Opens your editor (vim by default)
 # Enter branch name, e.g., "feature-login"
-# Creates branch: qwtk/2025/11/23/feature-login
-# Creates worktree at: ~/.worktrees/gw/qwtk-2025-11-23-feature-login
+# Creates branch: sample-user/2025/11/24/feature-login
+# Creates worktree at: ~/.worktrees/gw/sample-user-2025-11-24-feature-login
 ```
 
-The branch name will automatically be prefixed with `qwtk/YYYY/MM/DD/` (configurable via `GW_BRANCH_PREFIX`).
+The branch name will automatically be prefixed with `{user-name}/YYYY/MM/DD/` where `{user-name}` is derived from `git config user.name` (lowercased with spaces replaced by hyphens). This can be customized via `GW_BRANCH_PREFIX` environment variable.
 
 Worktrees are organized by repository name under `~/.worktrees/{repo-name}/` to keep multiple projects organized.
 
@@ -112,9 +112,9 @@ Display all worktrees sorted by date (newest first).
 
 ```bash
 $ gw list  # or gw ls
-qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
-qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
-main                              ~/src/myproject
+sample-user/2025/11/24/feature-login    ~/.worktrees/gw/sample-user-2025-11-24-feature-login
+sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/sample-user-2025-11-23-bugfix-auth
+main                                          ~/src/myproject
 ```
 
 ### `gw cd`
@@ -164,7 +164,7 @@ export GW_EDITOR="nvim"
 
 ### `GW_BRANCH_PREFIX`
 
-Branch name prefix format (default: `qwtk/{date}/`)
+Branch name prefix format (default: `{git-user-name}/{date}/` where `{git-user-name}` is derived from `git config user.name`)
 
 ```bash
 export GW_BRANCH_PREFIX="feature/{date}/"
@@ -179,8 +179,8 @@ The `{date}` placeholder will be replaced with the current date in `YYYY/MM/DD` 
 ```bash
 $ gw add
 # Enter "user-authentication" in editor
-# Creates: qwtk/2025/11/23/user-authentication
-# Path: ~/.worktrees/gw/qwtk-2025-11-23-user-authentication
+# Creates: sample-user/2025/11/24/user-authentication
+# Path: ~/.worktrees/gw/sample-user-2025-11-24-user-authentication
 ```
 
 ### Switching between worktrees
@@ -189,7 +189,7 @@ $ gw add
 $ gw cd
 # Select from list using peco
 $ pwd
-/Users/username/.worktrees/gw/qwtk-2025-11-23-user-authentication
+/Users/username/.worktrees/gw/sample-user-2025-11-24-user-authentication
 ```
 
 ### Cleaning up old worktrees

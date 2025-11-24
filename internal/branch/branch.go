@@ -8,12 +8,37 @@ import (
 	"time"
 )
 
-// GenerateBranchName generates a branch name with qwtk prefix and current date
-func GenerateBranchName(name string) string {
+// GetGitUserName returns the git user.name from config
+func GetGitUserName() (string, error) {
+	cmd := exec.Command("git", "config", "user.name")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("git user.name is not configured. Please set it with: git config user.name \"Your Name\"")
+	}
+
+	userName := strings.TrimSpace(string(output))
+	if userName == "" {
+		return "", fmt.Errorf("git user.name is empty. Please set it with: git config user.name \"Your Name\"")
+	}
+
+	return userName, nil
+}
+
+// GenerateBranchName generates a branch name with user prefix and current date
+func GenerateBranchName(name string) (string, error) {
 	now := time.Now()
+
+	// Get prefix from environment variable or use git user.name
 	prefix := os.Getenv("GW_BRANCH_PREFIX")
 	if prefix == "" {
-		prefix = "qwtk/{date}/"
+		userName, err := GetGitUserName()
+		if err != nil {
+			return "", err
+		}
+		// Convert user name to lowercase and replace spaces with hyphens for branch name
+		userPrefix := strings.ToLower(userName)
+		userPrefix = strings.ReplaceAll(userPrefix, " ", "-")
+		prefix = userPrefix + "/{date}/"
 	}
 
 	// Replace {date} placeholder
@@ -23,7 +48,7 @@ func GenerateBranchName(name string) string {
 	name = strings.TrimSpace(name)
 	name = strings.ReplaceAll(name, " ", "-")
 
-	return prefix + name
+	return prefix + name, nil
 }
 
 // Create creates a new branch
