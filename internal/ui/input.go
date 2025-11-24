@@ -1,13 +1,20 @@
 package ui
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
+
+// ErrCancelled is returned when user cancels the selection
+var ErrCancelled = errors.New("selection cancelled")
 
 // EditWithEditor opens an editor to get user input
 // Similar to vcat command
@@ -68,21 +75,12 @@ func SelectWithPeco(items []string) (string, error) {
 		return "", fmt.Errorf("no items to select")
 	}
 
-	// Create temporary file with items
-	tmpfile, err := os.CreateTemp("", "gw-peco-*.txt")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer os.Remove(tmpfile.Name())
+	// Create context that cancels on interrupt signal
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	content := strings.Join(items, "\n")
-	if _, err := tmpfile.WriteString(content); err != nil {
-		return "", fmt.Errorf("failed to write to temp file: %w", err)
-	}
-	tmpfile.Close()
-
-	// Run peco
-	cmd := exec.Command("peco")
+	// Run peco with context
+	cmd := exec.CommandContext(ctx, "peco")
 
 	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
@@ -125,8 +123,20 @@ func SelectWithPeco(items []string) (string, error) {
 	}
 
 	// Wait for peco to finish
-	if err := cmd.Wait(); err != nil {
-		return "", fmt.Errorf("peco failed: %w", err)
+	waitErr := cmd.Wait()
+	if waitErr != nil {
+		// Check if cancelled by context (Ctrl+C)
+		if ctx.Err() != nil {
+			return "", ErrCancelled
+		}
+		// Check if user cancelled (exit code 130 = Ctrl+C, exit code 1 = ESC/no selection)
+		if exitErr, ok := waitErr.(*exec.ExitError); ok {
+			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
+				// User cancelled
+				return "", ErrCancelled
+			}
+		}
+		return "", fmt.Errorf("peco failed: %w", waitErr)
 	}
 
 	result := strings.TrimSpace(string(output))
@@ -152,7 +162,11 @@ func MultiSelect(items []string) ([]string, error) {
 
 // multiSelectWithFzf uses fzf for multi-select
 func multiSelectWithFzf(items []string) ([]string, error) {
-	cmd := exec.Command("fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
+	// Create context that cancels on interrupt signal
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	cmd := exec.CommandContext(ctx, "fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
 
 	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
@@ -161,20 +175,26 @@ func multiSelectWithFzf(items []string) ([]string, error) {
 	}
 	defer tty.Close()
 
-	cmd.Stdin = tty
-	cmd.Stderr = tty
-
-	// Write items to stdin via pipe
+	// Set up pipes
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
 	}
 
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	// fzf displays UI on stderr and reads keyboard input from TTY
+	cmd.Stderr = tty
+
+	// Start fzf
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start fzf: %w", err)
 	}
 
-	// Write items
+	// Write items to stdin
 	go func() {
 		defer stdin.Close()
 		for _, item := range items {
@@ -182,11 +202,31 @@ func multiSelectWithFzf(items []string) ([]string, error) {
 		}
 	}()
 
-	output, err := cmd.Output()
+	// Read stdout
+	output, err := io.ReadAll(stdout)
 	if err != nil {
-		return nil, fmt.Errorf("selection cancelled or failed: %w", err)
+		return nil, fmt.Errorf("failed to read output: %w", err)
 	}
 
+	// Wait for fzf to finish
+	waitErr := cmd.Wait()
+	if waitErr != nil {
+		// Check if cancelled by context (Ctrl+C)
+		if ctx.Err() != nil {
+			fmt.Println("\nCancelled.")
+			return []string{}, nil
+		}
+		// Check if user cancelled (exit code 130 = Ctrl+C, exit code 1 = ESC/no selection)
+		if exitErr, ok := waitErr.(*exec.ExitError); ok {
+			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
+				// User cancelled, return empty selection
+				return []string{}, nil
+			}
+		}
+		return nil, fmt.Errorf("fzf failed: %w", waitErr)
+	}
+
+	// Parse selected items
 	selected := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(selected) == 1 && selected[0] == "" {
 		return []string{}, nil
@@ -197,6 +237,7 @@ func multiSelectWithFzf(items []string) ([]string, error) {
 
 // multiSelectWithPeco uses peco for single selection (repeated until done)
 func multiSelectWithPeco(items []string) ([]string, error) {
+	const doneMarker = "*** Done - Finish selection ***"
 	var selected []string
 	remaining := make([]string, len(items))
 	copy(remaining, items)
@@ -206,11 +247,34 @@ func multiSelectWithPeco(items []string) ([]string, error) {
 			break
 		}
 
-		fmt.Printf("\nSelected %d item(s). Select another or cancel to finish.\n", len(selected))
+		// Show status
+		if len(selected) > 0 {
+			fmt.Printf("\nCurrently selected for removal (%d):\n", len(selected))
+			for _, item := range selected {
+				fmt.Printf("  ✓ %s\n", item)
+			}
+		}
+		fmt.Printf("\nSelect worktree to remove (or choose Done to finish):\n")
 
-		choice, err := SelectWithPeco(remaining)
+		// Add "Done" option to the list
+		choices := make([]string, 0, len(remaining)+1)
+		choices = append(choices, doneMarker)
+		choices = append(choices, remaining...)
+
+		choice, err := SelectWithPeco(choices)
 		if err != nil {
-			// User cancelled, finish selection
+			// Check if user cancelled with Ctrl+C
+			if errors.Is(err, ErrCancelled) {
+				// Ctrl+C means complete cancellation, return empty selection
+				fmt.Println("\nCancelled.")
+				return []string{}, nil
+			}
+			// Other errors
+			return nil, err
+		}
+
+		// Check if user selected "Done"
+		if choice == doneMarker {
 			break
 		}
 
