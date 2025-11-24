@@ -21,7 +21,10 @@ git worktreeを便利にラップするコマンドラインツール
 2. ブランチ名のプレフィックスは `qwtk/YYYY/MM/DD/` 形式（git-cと同じ）
 3. worktreeのディレクトリ名はブランチ名から生成
    - スラッシュをハイフンに置換するなど、ファイルシステム用に正規化
-4. worktreeを作成（デフォルトの親ディレクトリは検討が必要）
+4. worktreeを作成
+   - リポジトリのdirname（例: `gw`）を親ディレクトリとする
+   - パス例: `~/.worktrees/gw/qwtk-2025-11-24-feature-login`
+   - これにより複数のリポジトリのworktreeを整理して管理できる
 
 #### 実装の参考
 
@@ -96,7 +99,8 @@ eval "$(gw init)"
 
 - 言語: Go（クロスプラットフォーム対応、シングルバイナリ配布のため）
 - インタラクティブUI:
-  - リスト選択: peco連携 または bubbletea等のTUIライブラリ
+  - 単一選択（`gw cd`）: peco（必須）
+  - 複数選択（`gw clean`）: fzf優先、なければpecoにフォールバック
   - テキスト入力: エディタ起動（vimまたは$EDITOR）
 
 ## ディレクトリ構成
@@ -138,12 +142,12 @@ echo 'eval "$(gw init)"' >> ~/.bashrc  # or ~/.zshrc
 $ gw add
 # エディタが開く → "feature-login" と入力
 # → ブランチ "qwtk/2025/11/23/feature-login" を作成
-# → worktree を ~/.worktrees/qwtk-2025-11-23-feature-login に作成
+# → worktree を ~/.worktrees/gw/qwtk-2025-11-23-feature-login に作成
 
 # worktree一覧
 $ gw list
-qwtk/2025/11/23/feature-login    ~/.worktrees/qwtk-2025-11-23-feature-login
-qwtk/2025/11/22/bugfix-auth      ~/.worktrees/qwtk-2025-11-22-bugfix-auth
+qwtk/2025/11/23/feature-login    ~/.worktrees/gw/qwtk-2025-11-23-feature-login
+qwtk/2025/11/22/bugfix-auth      ~/.worktrees/gw/qwtk-2025-11-22-bugfix-auth
 main                              ~/src/myproject
 
 # worktreeに移動
