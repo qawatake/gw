@@ -166,13 +166,22 @@ func runCD(args []string) error {
 
 func runClean(args []string) error {
 	// Get worktree list
-	worktrees, err := worktree.List()
+	allWorktrees, err := worktree.List()
 	if err != nil {
 		return err
 	}
 
+	// Filter out main worktree
+	var worktrees []worktree.Worktree
+	for _, wt := range allWorktrees {
+		if !wt.IsMain {
+			worktrees = append(worktrees, wt)
+		}
+	}
+
 	if len(worktrees) == 0 {
-		return fmt.Errorf("no worktrees found")
+		fmt.Println("No additional worktrees found (main worktree cannot be removed)")
+		return nil
 	}
 
 	// Format worktrees for selection
@@ -221,14 +230,22 @@ func runClean(args []string) error {
 		return nil
 	}
 
-	// Remove worktrees
+	// Remove worktrees and their branches
 	for _, wt := range selectedWorktrees {
-		fmt.Printf("Removing %s...\n", wt.Branch)
+		fmt.Printf("Removing worktree %s...\n", wt.Branch)
 		if err := worktree.Remove(wt.Path); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to remove %s: %v\n", wt.Branch, err)
+			fmt.Fprintf(os.Stderr, "Failed to remove worktree %s: %v\n", wt.Branch, err)
 			continue
 		}
-		fmt.Printf("✓ Removed %s\n", wt.Branch)
+		fmt.Printf("✓ Removed worktree %s\n", wt.Branch)
+
+		// Remove associated branch
+		fmt.Printf("Removing branch %s...\n", wt.Branch)
+		if err := worktree.RemoveBranch(wt.Branch); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to remove branch %s: %v\n", wt.Branch, err)
+			continue
+		}
+		fmt.Printf("✓ Removed branch %s\n", wt.Branch)
 	}
 
 	return nil

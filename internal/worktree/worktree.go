@@ -15,6 +15,7 @@ type Worktree struct {
 	Branch string
 	Commit string
 	Date   time.Time
+	IsMain bool // true if this is the main worktree
 }
 
 // List returns all worktrees sorted by date (newest first)
@@ -53,11 +54,17 @@ func List() ([]Worktree, error) {
 func parseWorktreeList(output string) ([]Worktree, error) {
 	var worktrees []Worktree
 	var current Worktree
+	isFirst := true
 
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	for _, line := range lines {
 		if line == "" {
 			if current.Path != "" {
+				// First worktree is the main worktree
+				if isFirst {
+					current.IsMain = true
+					isFirst = false
+				}
 				worktrees = append(worktrees, current)
 				current = Worktree{}
 			}
@@ -87,6 +94,10 @@ func parseWorktreeList(output string) ([]Worktree, error) {
 
 	// Add last worktree if exists
 	if current.Path != "" {
+		// First worktree is the main worktree
+		if isFirst {
+			current.IsMain = true
+		}
 		worktrees = append(worktrees, current)
 	}
 
@@ -155,6 +166,17 @@ func Remove(path string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to remove worktree: %w\n%s", err, string(output))
+	}
+	return nil
+}
+
+// RemoveBranch removes a git branch
+func RemoveBranch(branchName string) error {
+	// Use -D to force delete (removes even if not merged)
+	cmd := exec.Command("git", "branch", "-D", branchName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to remove branch: %w\n%s", err, string(output))
 	}
 	return nil
 }
