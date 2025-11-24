@@ -162,7 +162,8 @@ func GenerateWorktreePath(branchName, rootDir string) string {
 
 // Remove removes a worktree
 func Remove(path string) error {
-	cmd := exec.Command("git", "worktree", "remove", path)
+	// Use --force to handle worktrees with submodules
+	cmd := exec.Command("git", "worktree", "remove", "--force", path)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to remove worktree: %w\n%s", err, string(output))
