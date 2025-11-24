@@ -108,17 +108,26 @@ func SelectWithPeco(items []string) (string, error) {
 	return result, nil
 }
 
-// MultiSelectWithFzf opens fzf for multi-select interactive selection
-func MultiSelectWithFzf(items []string) ([]string, error) {
+// MultiSelect opens an interactive multi-select UI
+// Prefers fzf, falls back to peco if fzf is not available
+func MultiSelect(items []string) ([]string, error) {
 	if len(items) == 0 {
 		return nil, fmt.Errorf("no items to select")
 	}
 
-	// Run fzf with multi-select mode
-	cmd := exec.Command("fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
+	// Check if fzf is available
+	if _, err := exec.LookPath("fzf"); err == nil {
+		return multiSelectWithFzf(items)
+	}
 
-	// Set up stdin with items
-	cmd.Stdin = strings.NewReader(strings.Join(items, "\n"))
+	// Fallback to peco (single select repeated)
+	fmt.Println("Note: fzf not found, using peco (single selection mode)")
+	return multiSelectWithPeco(items)
+}
+
+// multiSelectWithFzf uses fzf for multi-select
+func multiSelectWithFzf(items []string) ([]string, error) {
+	cmd := exec.Command("fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
 
 	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
@@ -130,14 +139,29 @@ func MultiSelectWithFzf(items []string) ([]string, error) {
 	cmd.Stdin = tty
 	cmd.Stderr = tty
 
-	// Capture output
+	// Write items to stdin via pipe
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start fzf: %w", err)
+	}
+
+	// Write items
+	go func() {
+		defer stdin.Close()
+		for _, item := range items {
+			fmt.Fprintln(stdin, item)
+		}
+	}()
+
 	output, err := cmd.Output()
 	if err != nil {
-		// User may have cancelled
 		return nil, fmt.Errorf("selection cancelled or failed: %w", err)
 	}
 
-	// Parse selected items
 	selected := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(selected) == 1 && selected[0] == "" {
 		return []string{}, nil
@@ -146,20 +170,73 @@ func MultiSelectWithFzf(items []string) ([]string, error) {
 	return selected, nil
 }
 
+// multiSelectWithPeco uses peco for single selection (repeated until done)
+func multiSelectWithPeco(items []string) ([]string, error) {
+	var selected []string
+	remaining := make([]string, len(items))
+	copy(remaining, items)
+
+	for {
+		if len(remaining) == 0 {
+			break
+		}
+
+		fmt.Printf("\nSelected %d item(s). Select another or cancel to finish.\n", len(selected))
+
+		choice, err := SelectWithPeco(remaining)
+		if err != nil {
+			// User cancelled, finish selection
+			break
+		}
+
+		// Add to selected
+		selected = append(selected, choice)
+
+		// Remove from remaining
+		newRemaining := []string{}
+		for _, item := range remaining {
+			if item != choice {
+				newRemaining = append(newRemaining, item)
+			}
+		}
+		remaining = newRemaining
+	}
+
+	return selected, nil
+}
+
 // GetWorktreeRoot returns the root directory for worktrees
+// Format: ~/.worktrees/{repo-name}/
 func GetWorktreeRoot() (string, error) {
-	// Check environment variable first
-	if root := os.Getenv("GW_WORKTREE_ROOT"); root != "" {
-		return root, nil
+	baseDir := os.Getenv("GW_WORKTREE_ROOT")
+	if baseDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		baseDir = filepath.Join(home, ".worktrees")
 	}
 
-	// Default to ~/.worktrees
-	home, err := os.UserHomeDir()
+	// Get repository directory name
+	repoName, err := getRepositoryName()
 	if err != nil {
-		return "", fmt.Errorf("failed to get home directory: %w", err)
+		return "", err
 	}
 
-	return filepath.Join(home, ".worktrees"), nil
+	return filepath.Join(baseDir, repoName), nil
+}
+
+// getRepositoryName returns the directory name of the current git repository
+func getRepositoryName() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get repository root: %w", err)
+	}
+
+	repoPath := strings.TrimSpace(string(output))
+	repoName := filepath.Base(repoPath)
+	return repoName, nil
 }
 
 // Confirm asks for user confirmation

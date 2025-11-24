@@ -181,8 +181,8 @@ func runClean(args []string) error {
 		items[i] = worktree.Format(wt)
 	}
 
-	// Let user select multiple worktrees with fzf
-	selected, err := ui.MultiSelectWithFzf(items)
+	// Let user select multiple worktrees (fzf or peco)
+	selected, err := ui.MultiSelect(items)
 	if err != nil {
 		return fmt.Errorf("failed to select worktrees: %w", err)
 	}
