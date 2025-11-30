@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/qawatake/gw/internal/branch"
+	"github.com/qawatake/gw/internal/link"
 	"github.com/qawatake/gw/internal/shell"
 	"github.com/qawatake/gw/internal/ui"
 	"github.com/qawatake/gw/internal/worktree"
@@ -52,6 +53,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "ln":
+		if err := runLn(args); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		printUsage()
@@ -69,6 +75,9 @@ func printUsage() {
 	fmt.Println("  gw cd                 Change directory to a worktree")
 	fmt.Println("  gw rm                 Remove selected worktrees")
 	fmt.Println("  gw pr checkout        Checkout a PR branch into a new worktree")
+	fmt.Println("  gw ln add <path>      Share a file/directory across worktrees")
+	fmt.Println("  gw ln ls              List shared files/directories")
+	fmt.Println("  gw ln rm              Remove a file/directory from sharing")
 }
 
 func runInit(args []string) error {
@@ -111,6 +120,12 @@ func runAdd(args []string) error {
 	// Create worktree
 	if err := worktree.Add(wtPath, branchName); err != nil {
 		return err
+	}
+
+	// Create symlinks for shared files
+	warnings := link.CreateSymlinks(wtPath, rootDir)
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", w)
 	}
 
 	fmt.Printf("✓ Successfully created worktree\n")
@@ -291,6 +306,119 @@ func runPR(args []string) error {
 	}
 }
 
+func runLn(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("ln subcommand required (add, ls, rm)")
+	}
+
+	subcommand := args[0]
+	subArgs := args[1:]
+
+	switch subcommand {
+	case "add":
+		return runLnAdd(subArgs)
+	case "ls":
+		return runLnLs(subArgs)
+	case "rm":
+		return runLnRm(subArgs)
+	default:
+		return fmt.Errorf("unknown ln subcommand: %s", subcommand)
+	}
+}
+
+func runLnAdd(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("path required: gw ln add <path>")
+	}
+
+	targetPath := args[0]
+
+	// Get worktree root directory
+	rootDir, err := ui.GetWorktreeRoot()
+	if err != nil {
+		return err
+	}
+
+	// Add the file/directory to .gw-links
+	if err := link.Add(targetPath, rootDir); err != nil {
+		return err
+	}
+
+	fmt.Printf("✓ Added to shared links: %s\n", targetPath)
+	return nil
+}
+
+func runLnLs(args []string) error {
+	// Get worktree root directory
+	rootDir, err := ui.GetWorktreeRoot()
+	if err != nil {
+		return err
+	}
+
+	// List all items in .gw-links
+	items, err := link.List(rootDir)
+	if err != nil {
+		return err
+	}
+
+	if len(items) == 0 {
+		fmt.Println("No shared files/directories")
+		return nil
+	}
+
+	for _, item := range items {
+		fmt.Println(item)
+	}
+
+	return nil
+}
+
+func runLnRm(args []string) error {
+	// Get worktree root directory
+	rootDir, err := ui.GetWorktreeRoot()
+	if err != nil {
+		return err
+	}
+
+	// List registered items for selection
+	items, err := link.List(rootDir)
+	if err != nil {
+		return err
+	}
+
+	if len(items) == 0 {
+		fmt.Println("No shared files/directories to remove")
+		return nil
+	}
+
+	// Let user select with peco/fzf
+	selected, err := ui.SelectWithPeco(items)
+	if err != nil {
+		return fmt.Errorf("failed to select: %w", err)
+	}
+
+	// Get main worktree path
+	worktrees, err := worktree.List()
+	if err != nil {
+		return err
+	}
+
+	if len(worktrees) == 0 {
+		return fmt.Errorf("no worktrees found")
+	}
+
+	mainWorktreePath := worktrees[0].Path
+
+	// Remove from .gw-links and move to main worktree
+	if err := link.Remove(selected, rootDir, mainWorktreePath); err != nil {
+		return err
+	}
+
+	fmt.Printf("✓ Removed from shared links: %s\n", selected)
+	fmt.Printf("  Moved to: %s\n", mainWorktreePath)
+	return nil
+}
+
 func runPRCheckout(args []string) error {
 	// Run gh pr checkout and capture the branch name
 	ghArgs := append([]string{"pr", "checkout"}, args...)
@@ -338,6 +466,12 @@ func runPRCheckout(args []string) error {
 	// Create worktree for existing branch
 	if err := worktree.AddExistingBranch(wtPath, branchName); err != nil {
 		return err
+	}
+
+	// Create symlinks for shared files
+	warnings := link.CreateSymlinks(wtPath, rootDir)
+	for _, w := range warnings {
+		fmt.Fprintf(os.Stderr, "Warning: %s\n", w)
 	}
 
 	fmt.Printf("✓ Successfully created worktree\n")

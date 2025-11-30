@@ -316,16 +316,26 @@ func GetWorktreeRoot() (string, error) {
 }
 
 // getRepositoryName returns the directory name of the current git repository
+// For worktrees, it returns the original repository name by checking
+// the git worktree list output
 func getRepositoryName() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	// Get the main worktree path (first entry in git worktree list)
+	cmd := exec.Command("git", "worktree", "list", "--porcelain")
 	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get repository root: %w", err)
+		return "", fmt.Errorf("failed to get worktree list: %w", err)
 	}
 
-	repoPath := strings.TrimSpace(string(output))
-	repoName := filepath.Base(repoPath)
-	return repoName, nil
+	// Parse first worktree path
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "worktree ") {
+			mainPath := strings.TrimPrefix(line, "worktree ")
+			return filepath.Base(mainPath), nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to determine repository name")
 }
 
 // Confirm asks for user confirmation
