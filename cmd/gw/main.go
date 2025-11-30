@@ -198,12 +198,23 @@ func runRM(args []string) error {
 		return err
 	}
 
-	// Filter out main worktree
+	// Get current directory to exclude current worktree
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Filter out main worktree and current worktree
 	var worktrees []worktree.Worktree
 	for _, wt := range allWorktrees {
-		if !wt.IsMain {
-			worktrees = append(worktrees, wt)
+		if wt.IsMain {
+			continue
 		}
+		// Check if current directory is within this worktree
+		if strings.HasPrefix(cwd, wt.Path) {
+			continue
+		}
+		worktrees = append(worktrees, wt)
 	}
 
 	if len(worktrees) == 0 {
