@@ -9,6 +9,7 @@ A convenient command-line tool to manage git worktrees efficiently.
 - **cd**: Interactively select and navigate to a worktree
 - **rm**: Interactively select and remove multiple worktrees with their branches
 - **pr checkout**: Checkout a PR branch and create a worktree for it
+- **ln**: Share gitignored files (like `.env`) across worktrees using symlinks
 
 ## Requirements
 
@@ -132,6 +133,24 @@ $ gw pr checkout feature-branch
 
 $ gw pr checkout https://github.com/owner/repo/pull/123
 # Checkout by URL
+```
+
+### `gw ln`
+
+Share gitignored files (like `.env`, `node_modules/`) across worktrees using symlinks.
+
+```bash
+$ gw ln add .env
+# Share .env across all worktrees
+
+$ gw ln add node_modules
+# Works with directories too
+
+$ gw ln ls
+# List shared files/directories
+
+$ gw ln rm
+# Interactively remove a file from sharing
 ```
 
 ## Configuration

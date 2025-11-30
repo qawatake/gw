@@ -177,6 +177,7 @@ gitignoreされているファイルをworktree間で共有するためのコマ
 #### 概要
 
 - 共有ファイルの実体は `~/.worktrees/{repo}/.gw-links/` に保存
+- 登録パスは `~/.worktrees/{repo}/.gw-links.txt` に記録（1行1パス）
 - 各worktreeからはシンボリックリンクでアクセス
 - シンボリックリンクは絶対パスで作成
 
@@ -189,9 +190,11 @@ gitignoreされているファイルをworktree間で共有するためのコマ
 ###### 動作
 
 1. 指定されたパスが存在するか確認（存在しない場合はエラー）
-2. `~/.worktrees/{repo}/.gw-links/` ディレクトリがなければ作成
-3. 対象ファイル/ディレクトリを `.gw-links/` に移動
-4. 元の場所にシンボリックリンクを作成（絶対パス）
+2. パスがgitリポジトリ内であることを確認（リポジトリ外はエラー）
+3. `~/.worktrees/{repo}/.gw-links/` ディレクトリがなければ作成
+4. 対象ファイル/ディレクトリを `.gw-links/` に移動
+5. 元の場所にシンボリックリンクを作成（絶対パス）
+6. `.gw-links.txt` にパスを登録
 
 ###### 例
 
@@ -216,8 +219,8 @@ $ gw ln add tmp/cache
 
 ###### 動作
 
-1. `~/.worktrees/{repo}/.gw-links/` 内のファイル・ディレクトリを再帰的にリスト
-2. 相対パス形式で表示（例: `.env`、`tmp/cache/data.json`）
+1. `.gw-links.txt` から登録パスを読み込む
+2. 登録時のパス形式で表示（例: `.env`、`.claude/settings.json`）
 
 ###### 例
 
@@ -234,12 +237,13 @@ node_modules
 
 ###### 動作
 
-1. `.gw-links/` 内のファイル一覧を表示
-2. インタラクティブな選択UI（peco/fzf）で削除対象を選択
+1. `.gw-links.txt` から登録パス一覧を取得
+2. インタラクティブな選択UI（peco）で削除対象を選択
 3. 選択されたファイル/ディレクトリをメインworktreeに移動
    - メインworktree = `git worktree list` で最初に表示されるworktree
    - メインworktreeのシンボリックリンクを実体ファイルで置き換え
-4. `.gw-links/` から削除
+4. `.gw-links/` から実体を削除
+5. `.gw-links.txt` から登録を削除
 
 ###### 注意
 
@@ -264,6 +268,7 @@ node_modules
     │   ├── tmp/
     │   │   └── cache/
     │   └── node_modules/
+    ├── .gw-links.txt           # 登録パス一覧
     ├── user-2025-11-30-feature-a/   # worktree
     │   ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
     │   ├── tmp/
@@ -272,3 +277,14 @@ node_modules
     └── user-2025-11-30-feature-b/   # worktree
         ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
         └── ...
+```
+
+#### .gw-links.txt の形式
+
+```
+.env
+tmp/cache
+node_modules
+```
+
+1行1パスのシンプルなテキストファイル。登録時に指定したパスがそのまま保存される。
