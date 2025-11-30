@@ -223,15 +223,6 @@ func multiSelectWithPeco(items []string) ([]string, error) {
 			break
 		}
 
-		// Show status
-		if len(selected) > 0 {
-			fmt.Printf("\nCurrently selected for removal (%d):\n", len(selected))
-			for _, item := range selected {
-				fmt.Printf("  ✓ %s\n", item)
-			}
-		}
-		fmt.Printf("\nSelect worktree to remove (or choose Done to finish):\n")
-
 		// Add "Done" option to the list
 		choices := make([]string, 0, len(remaining)+1)
 		choices = append(choices, doneMarker)
