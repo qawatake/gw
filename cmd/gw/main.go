@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/qawatake/gw/internal/branch"
 	"github.com/qawatake/gw/internal/shell"
@@ -45,6 +47,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
+	case "pr":
+		if err := runPR(args); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		printUsage()
@@ -61,6 +68,7 @@ func printUsage() {
 	fmt.Println("  gw list (ls)          List all worktrees")
 	fmt.Println("  gw cd                 Change directory to a worktree")
 	fmt.Println("  gw rm                 Remove selected worktrees")
+	fmt.Println("  gw pr checkout        Checkout a PR branch into a new worktree")
 }
 
 func runInit(args []string) error {
@@ -262,6 +270,83 @@ func runRM(args []string) error {
 			continue
 		}
 		fmt.Printf("✓ Removed branch %s\n", wt.Branch)
+	}
+
+	return nil
+}
+
+func runPR(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("pr subcommand required (e.g., 'gw pr checkout')")
+	}
+
+	subcommand := args[0]
+	subArgs := args[1:]
+
+	switch subcommand {
+	case "checkout":
+		return runPRCheckout(subArgs)
+	default:
+		return fmt.Errorf("unknown pr subcommand: %s", subcommand)
+	}
+}
+
+func runPRCheckout(args []string) error {
+	// Run gh pr checkout and capture the branch name
+	ghArgs := append([]string{"pr", "checkout"}, args...)
+	cmd := exec.Command("gh", ghArgs...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("gh pr checkout failed: %w", err)
+	}
+
+	// Get current branch name (gh pr checkout switches to the PR branch)
+	branchCmd := exec.Command("git", "branch", "--show-current")
+	branchOutput, err := branchCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get current branch: %w", err)
+	}
+	branchName := strings.TrimSpace(string(branchOutput))
+
+	if branchName == "" {
+		return fmt.Errorf("failed to determine checked out branch")
+	}
+
+	fmt.Printf("Checked out branch: %s\n", branchName)
+
+	// Get worktree root directory
+	rootDir, err := ui.GetWorktreeRoot()
+	if err != nil {
+		return err
+	}
+
+	// Generate worktree path
+	wtPath := worktree.GenerateWorktreePath(branchName, rootDir)
+	fmt.Printf("Creating worktree at: %s\n", wtPath)
+
+	// Switch back to previous branch before creating worktree
+	// (we need to detach the branch from current worktree)
+	prevBranchCmd := exec.Command("git", "checkout", "-")
+	prevBranchCmd.Stdout = os.Stdout
+	prevBranchCmd.Stderr = os.Stderr
+	if err := prevBranchCmd.Run(); err != nil {
+		return fmt.Errorf("failed to switch back to previous branch: %w", err)
+	}
+
+	// Create worktree for existing branch
+	if err := worktree.AddExistingBranch(wtPath, branchName); err != nil {
+		return err
+	}
+
+	fmt.Printf("✓ Successfully created worktree\n")
+	fmt.Printf("  Branch: %s\n", branchName)
+	fmt.Printf("  Path: %s\n", wtPath)
+
+	// Print any output from gh pr checkout
+	if len(output) > 0 {
+		fmt.Print(string(output))
 	}
 
 	return nil

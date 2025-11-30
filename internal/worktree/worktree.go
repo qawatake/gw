@@ -143,9 +143,19 @@ func getHomeDir() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
-// Add creates a new worktree
+// Add creates a new worktree with a new branch
 func Add(path, branch string) error {
 	cmd := exec.Command("git", "worktree", "add", "-b", branch, path)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to add worktree: %w\n%s", err, string(output))
+	}
+	return nil
+}
+
+// AddExistingBranch creates a worktree for an existing branch
+func AddExistingBranch(path, branch string) error {
+	cmd := exec.Command("git", "worktree", "add", path, branch)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to add worktree: %w\n%s", err, string(output))
