@@ -14,14 +14,31 @@ import (
 	"github.com/qawatake/gw/internal/worktree"
 )
 
+var verbose bool
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
 	}
 
-	command := os.Args[1]
-	args := os.Args[2:]
+	// Check for -v flag
+	args := os.Args[1:]
+	for i, arg := range args {
+		if arg == "-v" || arg == "--verbose" {
+			verbose = true
+			args = append(args[:i], args[i+1:]...)
+			break
+		}
+	}
+
+	if len(args) == 0 {
+		printUsage()
+		os.Exit(1)
+	}
+
+	command := args[0]
+	args = args[1:]
 
 	switch command {
 	case "init":
@@ -107,7 +124,9 @@ func runAdd(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Creating branch: %s\n", branchName)
+	if verbose {
+		fmt.Printf("Creating branch: %s\n", branchName)
+	}
 
 	// Get worktree root directory
 	rootDir, repoName, err := ui.GetWorktreeRoot()
@@ -117,7 +136,9 @@ func runAdd(args []string) error {
 
 	// Generate worktree path from user input (not branch name)
 	wtPath := worktree.GenerateWorktreePath(name, rootDir, repoName)
-	fmt.Printf("Creating worktree at: %s\n", wtPath)
+	if verbose {
+		fmt.Printf("Creating worktree at: %s\n", wtPath)
+	}
 
 	// Create worktree
 	if err := worktree.Add(wtPath, branchName); err != nil {
@@ -130,9 +151,11 @@ func runAdd(args []string) error {
 		fmt.Fprintf(os.Stderr, "Warning: %s\n", w)
 	}
 
-	fmt.Printf("✓ Successfully created worktree\n")
-	fmt.Printf("  Branch: %s\n", branchName)
-	fmt.Printf("  Path: %s\n", wtPath)
+	if verbose {
+		fmt.Printf("✓ Successfully created worktree\n")
+		fmt.Printf("  Branch: %s\n", branchName)
+		fmt.Printf("  Path: %s\n", wtPath)
+	}
 
 	return nil
 }
@@ -222,7 +245,9 @@ func runRM(args []string) error {
 	}
 
 	if len(worktrees) == 0 {
-		fmt.Println("No additional worktrees found (main worktree cannot be removed)")
+		if verbose {
+			fmt.Println("No additional worktrees found (main worktree cannot be removed)")
+		}
 		return nil
 	}
 
@@ -242,7 +267,6 @@ func runRM(args []string) error {
 	}
 
 	if len(selected) == 0 {
-		fmt.Println("No worktrees selected")
 		return nil
 	}
 
@@ -284,26 +308,33 @@ func runRM(args []string) error {
 	}
 
 	if !confirmed {
-		fmt.Println("Cancelled")
 		return nil
 	}
 
 	// Remove worktrees and their branches
 	for _, wt := range selectedWorktrees {
-		fmt.Printf("Removing worktree %s...\n", wt.Branch)
+		if verbose {
+			fmt.Printf("Removing worktree %s...\n", wt.Branch)
+		}
 		if err := worktree.Remove(wt.Path); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to remove worktree %s: %v\n", wt.Branch, err)
 			continue
 		}
-		fmt.Printf("✓ Removed worktree %s\n", wt.Branch)
+		if verbose {
+			fmt.Printf("✓ Removed worktree %s\n", wt.Branch)
+		}
 
 		// Remove associated branch
-		fmt.Printf("Removing branch %s...\n", wt.Branch)
+		if verbose {
+			fmt.Printf("Removing branch %s...\n", wt.Branch)
+		}
 		if err := worktree.RemoveBranch(wt.Branch); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to remove branch %s: %v\n", wt.Branch, err)
 			continue
 		}
-		fmt.Printf("✓ Removed branch %s\n", wt.Branch)
+		if verbose {
+			fmt.Printf("✓ Removed branch %s\n", wt.Branch)
+		}
 	}
 
 	return nil
@@ -365,7 +396,9 @@ func runLnAdd(args []string) error {
 		return err
 	}
 
-	fmt.Printf("✓ Added to shared links: %s\n", targetPath)
+	if verbose {
+		fmt.Printf("✓ Added to shared links: %s\n", targetPath)
+	}
 	return nil
 }
 
@@ -383,7 +416,6 @@ func runLnLs(args []string) error {
 	}
 
 	if len(items) == 0 {
-		fmt.Println("No shared files/directories")
 		return nil
 	}
 
@@ -408,13 +440,14 @@ func runLnPull(args []string) error {
 	}
 
 	if len(results) == 0 {
-		fmt.Println("No shared files/directories registered")
 		return nil
 	}
 
 	for _, r := range results {
 		if r.Success {
-			fmt.Printf("✓ Linked: %s\n", r.Path)
+			if verbose {
+				fmt.Printf("✓ Linked: %s\n", r.Path)
+			}
 		} else if r.Message != "already exists" {
 			fmt.Fprintf(os.Stderr, "Warning: %s: %s\n", r.Path, r.Message)
 		}
@@ -437,7 +470,6 @@ func runLnRm(args []string) error {
 	}
 
 	if len(items) == 0 {
-		fmt.Println("No shared files/directories to remove")
 		return nil
 	}
 
@@ -467,8 +499,10 @@ func runLnRm(args []string) error {
 		return err
 	}
 
-	fmt.Printf("✓ Removed from shared links: %s\n", selected)
-	fmt.Printf("  Moved to: %s\n", mainWorktreePath)
+	if verbose {
+		fmt.Printf("✓ Removed from shared links: %s\n", selected)
+		fmt.Printf("  Moved to: %s\n", mainWorktreePath)
+	}
 	return nil
 }
 
@@ -495,7 +529,9 @@ func runPRCheckout(args []string) error {
 		return fmt.Errorf("failed to determine checked out branch")
 	}
 
-	fmt.Printf("Checked out branch: %s\n", branchName)
+	if verbose {
+		fmt.Printf("Checked out branch: %s\n", branchName)
+	}
 
 	// Get worktree root directory
 	rootDir, repoName, err := ui.GetWorktreeRoot()
@@ -505,7 +541,9 @@ func runPRCheckout(args []string) error {
 
 	// Generate worktree path
 	wtPath := worktree.GenerateWorktreePath(branchName, rootDir, repoName)
-	fmt.Printf("Creating worktree at: %s\n", wtPath)
+	if verbose {
+		fmt.Printf("Creating worktree at: %s\n", wtPath)
+	}
 
 	// Switch back to previous branch before creating worktree
 	// (we need to detach the branch from current worktree)
@@ -527,9 +565,11 @@ func runPRCheckout(args []string) error {
 		fmt.Fprintf(os.Stderr, "Warning: %s\n", w)
 	}
 
-	fmt.Printf("✓ Successfully created worktree\n")
-	fmt.Printf("  Branch: %s\n", branchName)
-	fmt.Printf("  Path: %s\n", wtPath)
+	if verbose {
+		fmt.Printf("✓ Successfully created worktree\n")
+		fmt.Printf("  Branch: %s\n", branchName)
+		fmt.Printf("  Path: %s\n", wtPath)
+	}
 
 	// Print any output from gh pr checkout
 	if len(output) > 0 {

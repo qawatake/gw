@@ -142,7 +142,6 @@ func MultiSelect(items []string) ([]string, error) {
 	}
 
 	// Fallback to peco (single select repeated)
-	fmt.Println("Note: fzf not found, using peco (single selection mode)")
 	return multiSelectWithPeco(items)
 }
 
