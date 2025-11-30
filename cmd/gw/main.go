@@ -77,6 +77,7 @@ func printUsage() {
 	fmt.Println("  gw pr checkout        Checkout a PR branch into a new worktree")
 	fmt.Println("  gw ln add <path>      Share a file/directory across worktrees")
 	fmt.Println("  gw ln ls              List shared files/directories")
+	fmt.Println("  gw ln pull            Pull missing shared files into current worktree")
 	fmt.Println("  gw ln rm              Remove a file/directory from sharing")
 }
 
@@ -319,6 +320,8 @@ func runLn(args []string) error {
 		return runLnAdd(subArgs)
 	case "ls":
 		return runLnLs(subArgs)
+	case "pull":
+		return runLnPull(subArgs)
 	case "rm":
 		return runLnRm(subArgs)
 	default:
@@ -368,6 +371,35 @@ func runLnLs(args []string) error {
 
 	for _, item := range items {
 		fmt.Println(item)
+	}
+
+	return nil
+}
+
+func runLnPull(args []string) error {
+	// Get worktree root directory
+	rootDir, err := ui.GetWorktreeRoot()
+	if err != nil {
+		return err
+	}
+
+	// Pull missing symlinks
+	results, err := link.Pull(rootDir)
+	if err != nil {
+		return err
+	}
+
+	if len(results) == 0 {
+		fmt.Println("No shared files/directories registered")
+		return nil
+	}
+
+	for _, r := range results {
+		if r.Success {
+			fmt.Printf("✓ Linked: %s\n", r.Path)
+		} else if r.Message != "already exists" {
+			fmt.Fprintf(os.Stderr, "Warning: %s: %s\n", r.Path, r.Message)
+		}
 	}
 
 	return nil

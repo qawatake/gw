@@ -231,6 +231,25 @@ tmp/cache
 node_modules
 ```
 
+##### `gw ln pull`
+
+現在のworktreeに未反映の共有ファイルを反映する。
+
+###### 動作
+
+1. `.gw-links.txt` から登録パス一覧を取得
+2. 現在のworktreeに存在しないパスについてシンボリックリンクを作成
+3. 既にファイルが存在する場合は警告を出力してスキップ
+
+###### 例
+
+```bash
+$ gw ln pull
+✓ Linked: .env
+✓ Linked: node_modules
+Warning: skipped (already exists): tmp/cache
+```
+
 ##### `gw ln rm`
 
 共有ファイルの登録を解除する。

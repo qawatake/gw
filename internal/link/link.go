@@ -233,6 +233,108 @@ func getGitRoot() (string, error) {
 	return strings.TrimSpace(string(output)), nil
 }
 
+// PullResult represents the result of pulling a single link
+type PullResult struct {
+	Path    string
+	Success bool
+	Message string
+}
+
+// Pull creates symlinks for registered paths that don't exist in current worktree
+func Pull(worktreeRoot string) ([]PullResult, error) {
+	// Get registered paths
+	paths, err := readLinksFile(worktreeRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(paths) == 0 {
+		return nil, nil
+	}
+
+	// Get current worktree root
+	repoRoot, err := getGitRoot()
+	if err != nil {
+		return nil, err
+	}
+
+	linksDir := GetLinksDir(worktreeRoot)
+	var results []PullResult
+
+	for _, relPath := range paths {
+		destPath := filepath.Join(repoRoot, relPath)
+		srcPath := filepath.Join(linksDir, relPath)
+
+		// Check if source exists in .gw-links
+		srcInfo, err := os.Stat(srcPath)
+		if os.IsNotExist(err) {
+			results = append(results, PullResult{
+				Path:    relPath,
+				Success: false,
+				Message: "not found in .gw-links",
+			})
+			continue
+		}
+
+		// Check if destination already exists
+		if info, err := os.Lstat(destPath); err == nil {
+			// If it's already a symlink pointing to the correct location, skip silently
+			if info.Mode()&os.ModeSymlink != 0 {
+				if target, err := os.Readlink(destPath); err == nil && target == srcPath {
+					// Already correctly linked, skip without warning
+					continue
+				}
+			}
+			results = append(results, PullResult{
+				Path:    relPath,
+				Success: false,
+				Message: "already exists",
+			})
+			continue
+		}
+
+		// Create parent directory if needed
+		if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+			results = append(results, PullResult{
+				Path:    relPath,
+				Success: false,
+				Message: fmt.Sprintf("failed to create directory: %v", err),
+			})
+			continue
+		}
+
+		// Create symlink
+		if srcInfo.IsDir() {
+			// For directories, link directly to the directory
+			if err := os.Symlink(srcPath, destPath); err != nil {
+				results = append(results, PullResult{
+					Path:    relPath,
+					Success: false,
+					Message: fmt.Sprintf("failed to create symlink: %v", err),
+				})
+				continue
+			}
+		} else {
+			// For files, link to the file
+			if err := os.Symlink(srcPath, destPath); err != nil {
+				results = append(results, PullResult{
+					Path:    relPath,
+					Success: false,
+					Message: fmt.Sprintf("failed to create symlink: %v", err),
+				})
+				continue
+			}
+		}
+
+		results = append(results, PullResult{
+			Path:    relPath,
+			Success: true,
+		})
+	}
+
+	return results, nil
+}
+
 // CreateSymlinks creates symlinks in a worktree for all items in .gw-links
 func CreateSymlinks(worktreePath string, worktreeRoot string) []string {
 	linksDir := GetLinksDir(worktreeRoot)
