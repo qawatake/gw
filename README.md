@@ -8,11 +8,13 @@ A convenient command-line tool to manage git worktrees efficiently.
 - **list** (alias: **ls**): Display all worktrees sorted by recent activity
 - **cd**: Interactively select and navigate to a worktree
 - **rm**: Interactively select and remove multiple worktrees with their branches
+- **pr checkout**: Checkout a PR branch and create a worktree for it
 
 ## Requirements
 
 - Go 1.24 or later
 - Git
+- GitHub CLI (`gh`) (for `gw pr checkout` command)
 - peco (for `gw cd` command)
 - fzf (for `gw rm` command, optional - falls back to peco)
 - vim or $EDITOR (for `gw add` command)
@@ -21,11 +23,14 @@ A convenient command-line tool to manage git worktrees efficiently.
 
 **macOS:**
 ```bash
-brew install peco fzf
+brew install gh peco fzf
 ```
 
 **Linux:**
 ```bash
+# GitHub CLI
+# See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+
 # peco
 go install github.com/peco/peco/cmd/peco@latest
 
@@ -111,6 +116,22 @@ $ gw rm
 # With peco: Select one at a time, choose "Done" to finish
 # Confirms before deletion
 # Removes both worktree and associated branch
+```
+
+### `gw pr checkout`
+
+Checkout a PR branch and create a new worktree for it. Accepts the same arguments as `gh pr checkout`.
+
+```bash
+$ gw pr checkout 123
+# Checks out PR #123 and creates a worktree for the branch
+# You stay in the current directory
+
+$ gw pr checkout feature-branch
+# Checkout by branch name
+
+$ gw pr checkout https://github.com/owner/repo/pull/123
+# Checkout by URL
 ```
 
 ## Configuration
