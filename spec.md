@@ -22,12 +22,15 @@ git worktreeを便利にラップするコマンドラインツール
    - `{user}` は `git config user.name` から取得（小文字化・スペースをハイフンに変換）
    - user.nameが設定されていない場合はエラー
    - 環境変数 `GW_BRANCH_PREFIX` で上書き可能
-3. worktreeのディレクトリ名はブランチ名から生成
+3. worktreeのディレクトリ名はユーザー入力から生成
+   - 日付プレフィックス（`YYYY-MM-DD-`）を付与
    - スラッシュをハイフンに置換するなど、ファイルシステム用に正規化
 4. worktreeを作成
    - リポジトリのdirname（例: `gw`）を親ディレクトリとする
-   - パス例: `~/.worktrees/gw/sample-user-2025-11-24-feature-login`
+   - パス例: `~/.worktrees/gw/2025-11-24-feature-login/gw`
+   - ブランチ名ディレクトリの下にリポジトリ名のディレクトリを作成
    - これにより複数のリポジトリのworktreeを整理して管理できる
+   - worktreeと同階層に他のファイル（例: メモ）を置くことができる
 
 #### 実装の参考
 
@@ -152,12 +155,12 @@ echo 'eval "$(gw init)"' >> ~/.bashrc  # or ~/.zshrc
 $ gw add
 # エディタが開く → "feature-login" と入力
 # → ブランチ "sample-user/2025/11/24/feature-login" を作成（user.nameに基づく）
-# → worktree を ~/.worktrees/gw/sample-user-2025-11-24-feature-login に作成
+# → worktree を ~/.worktrees/gw/2025-11-24-feature-login/gw に作成
 
 # worktree一覧
 $ gw list  # または gw ls
-sample-user/2025/11/24/feature-login    ~/.worktrees/gw/sample-user-2025-11-24-feature-login
-sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/sample-user-2025-11-23-bugfix-auth
+sample-user/2025/11/24/feature-login    ~/.worktrees/gw/2025-11-24-feature-login/gw
+sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/2025-11-23-bugfix-auth/gw
 main                                          ~/src/myproject
 
 # worktreeに移動
@@ -288,14 +291,16 @@ Warning: skipped (already exists): tmp/cache
     │   │   └── cache/
     │   └── node_modules/
     ├── .gw-links.txt           # 登録パス一覧
-    ├── user-2025-11-30-feature-a/   # worktree
-    │   ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
-    │   ├── tmp/
-    │   │   └── cache -> ~/.worktrees/{repo}/.gw-links/tmp/cache
-    │   └── ...
-    └── user-2025-11-30-feature-b/   # worktree
-        ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
-        └── ...
+    ├── 2025-11-30-feature-a/        # 日付-ブランチ名ディレクトリ
+    │   └── {repo}/                  # worktree本体
+    │       ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
+    │       ├── tmp/
+    │       │   └── cache -> ~/.worktrees/{repo}/.gw-links/tmp/cache
+    │       └── ...
+    └── 2025-11-30-feature-b/        # 日付-ブランチ名ディレクトリ
+        └── {repo}/                  # worktree本体
+            ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
+            └── ...
 ```
 
 #### .gw-links.txt の形式

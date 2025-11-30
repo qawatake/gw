@@ -109,13 +109,13 @@ func runAdd(args []string) error {
 	fmt.Printf("Creating branch: %s\n", branchName)
 
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, repoName, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
 
-	// Generate worktree path
-	wtPath := worktree.GenerateWorktreePath(branchName, rootDir)
+	// Generate worktree path from user input (not branch name)
+	wtPath := worktree.GenerateWorktreePath(name, rootDir, repoName)
 	fmt.Printf("Creating worktree at: %s\n", wtPath)
 
 	// Create worktree
@@ -337,7 +337,7 @@ func runLnAdd(args []string) error {
 	targetPath := args[0]
 
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, _, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
@@ -353,7 +353,7 @@ func runLnAdd(args []string) error {
 
 func runLnLs(args []string) error {
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, _, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
@@ -378,7 +378,7 @@ func runLnLs(args []string) error {
 
 func runLnPull(args []string) error {
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, _, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
@@ -407,7 +407,7 @@ func runLnPull(args []string) error {
 
 func runLnRm(args []string) error {
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, _, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
@@ -477,13 +477,13 @@ func runPRCheckout(args []string) error {
 	fmt.Printf("Checked out branch: %s\n", branchName)
 
 	// Get worktree root directory
-	rootDir, err := ui.GetWorktreeRoot()
+	rootDir, repoName, err := ui.GetWorktreeRoot()
 	if err != nil {
 		return err
 	}
 
 	// Generate worktree path
-	wtPath := worktree.GenerateWorktreePath(branchName, rootDir)
+	wtPath := worktree.GenerateWorktreePath(branchName, rootDir, repoName)
 	fmt.Printf("Creating worktree at: %s\n", wtPath)
 
 	// Switch back to previous branch before creating worktree

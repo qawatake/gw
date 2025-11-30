@@ -163,11 +163,20 @@ func AddExistingBranch(path, branch string) error {
 	return nil
 }
 
-// GenerateWorktreePath generates a filesystem-safe path from branch name
-func GenerateWorktreePath(branchName, rootDir string) string {
-	// Replace slashes with hyphens
-	dirName := strings.ReplaceAll(branchName, "/", "-")
-	return filepath.Join(rootDir, dirName)
+// GenerateWorktreePath generates a filesystem-safe path from user input name
+// Format: {rootDir}/{YYYY-MM-DD-name}/{repoName}
+func GenerateWorktreePath(name, rootDir, repoName string) string {
+	// Add date prefix
+	now := time.Now()
+	datePrefix := now.Format("2006-01-02")
+
+	// Replace slashes with hyphens for filesystem safety
+	safeName := strings.ReplaceAll(name, "/", "-")
+	// Replace spaces with hyphens
+	safeName = strings.ReplaceAll(safeName, " ", "-")
+
+	dirName := datePrefix + "-" + safeName
+	return filepath.Join(rootDir, dirName, repoName)
 }
 
 // Remove removes a worktree

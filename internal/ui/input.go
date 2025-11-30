@@ -294,25 +294,25 @@ func multiSelectWithPeco(items []string) ([]string, error) {
 	return selected, nil
 }
 
-// GetWorktreeRoot returns the root directory for worktrees
+// GetWorktreeRoot returns the root directory for worktrees and the repository name
 // Format: ~/.worktrees/{repo-name}/
-func GetWorktreeRoot() (string, error) {
+func GetWorktreeRoot() (rootDir string, repoName string, err error) {
 	baseDir := os.Getenv("GW_WORKTREE_ROOT")
 	if baseDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return "", fmt.Errorf("failed to get home directory: %w", err)
+			return "", "", fmt.Errorf("failed to get home directory: %w", err)
 		}
 		baseDir = filepath.Join(home, ".worktrees")
 	}
 
 	// Get repository directory name
-	repoName, err := getRepositoryName()
+	repoName, err = getRepositoryName()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return filepath.Join(baseDir, repoName), nil
+	return filepath.Join(baseDir, repoName), repoName, nil
 }
 
 // getRepositoryName returns the directory name of the current git repository
