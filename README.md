@@ -76,12 +76,12 @@ $ gw add
 # Opens your editor (vim by default)
 # Enter branch name, e.g., "feature-login"
 # Creates branch: sample-user/2025/11/24/feature-login
-# Creates worktree at: ~/.worktrees/gw/sample-user-2025-11-24-feature-login
+# Creates worktree at: ~/.worktrees/gw/2025-11-24-feature-login/gw
 ```
 
 The branch name will automatically be prefixed with `{user-name}/YYYY/MM/DD/` where `{user-name}` is derived from `git config user.name` (lowercased with spaces replaced by hyphens). This can be customized via `GW_BRANCH_PREFIX` environment variable.
 
-Worktrees are organized by repository name under `~/.worktrees/{repo-name}/` to keep multiple projects organized.
+Worktrees are organized under `~/.worktrees/{repo-name}/{YYYY-MM-DD-name}/{repo-name}/`. This structure allows you to place additional files (e.g., notes) alongside the worktree.
 
 ### `gw list` (alias: `gw ls`)
 
@@ -89,8 +89,8 @@ Display all worktrees sorted by date (newest first).
 
 ```bash
 $ gw list  # or gw ls
-sample-user/2025/11/24/feature-login    ~/.worktrees/gw/sample-user-2025-11-24-feature-login
-sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/sample-user-2025-11-23-bugfix-auth
+sample-user/2025/11/24/feature-login    ~/.worktrees/gw/2025-11-24-feature-login/gw
+sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/2025-11-23-bugfix-auth/gw
 main                                          ~/src/myproject
 ```
 
@@ -191,7 +191,7 @@ The `{date}` placeholder will be replaced with the current date in `YYYY/MM/DD` 
 $ gw add
 # Enter "user-authentication" in editor
 # Creates: sample-user/2025/11/24/user-authentication
-# Path: ~/.worktrees/gw/sample-user-2025-11-24-user-authentication
+# Path: ~/.worktrees/gw/2025-11-24-user-authentication/gw
 ```
 
 ### Switching between worktrees
@@ -200,7 +200,7 @@ $ gw add
 $ gw cd
 # Select from list using peco
 $ pwd
-/Users/username/.worktrees/gw/sample-user-2025-11-24-user-authentication
+/Users/username/.worktrees/gw/2025-11-24-user-authentication/gw
 ```
 
 ### Cleaning up old worktrees
