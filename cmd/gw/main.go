@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -169,6 +170,9 @@ func runCD(args []string) error {
 	// Let user select with peco
 	selected, err := ui.SelectWithPeco(items)
 	if err != nil {
+		if errors.Is(err, ui.ErrCancelled) {
+			return nil
+		}
 		return fmt.Errorf("failed to select worktree: %w", err)
 	}
 
@@ -231,6 +235,9 @@ func runRM(args []string) error {
 	// Let user select multiple worktrees (fzf or peco)
 	selected, err := ui.MultiSelect(items)
 	if err != nil {
+		if errors.Is(err, ui.ErrCancelled) {
+			return nil
+		}
 		return fmt.Errorf("failed to select worktrees: %w", err)
 	}
 
@@ -437,6 +444,9 @@ func runLnRm(args []string) error {
 	// Let user select with peco/fzf
 	selected, err := ui.SelectWithPeco(items)
 	if err != nil {
+		if errors.Is(err, ui.ErrCancelled) {
+			return nil
+		}
 		return fmt.Errorf("failed to select: %w", err)
 	}
 

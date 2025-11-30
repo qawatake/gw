@@ -1,16 +1,13 @@
 package ui
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 )
 
 // ErrCancelled is returned when user cancels the selection
@@ -75,12 +72,7 @@ func SelectWithPeco(items []string) (string, error) {
 		return "", fmt.Errorf("no items to select")
 	}
 
-	// Create context that cancels on interrupt signal
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	// Run peco with context
-	cmd := exec.CommandContext(ctx, "peco")
+	cmd := exec.Command("peco", "--on-cancel=error")
 
 	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
@@ -124,17 +116,11 @@ func SelectWithPeco(items []string) (string, error) {
 
 	// Wait for peco to finish
 	waitErr := cmd.Wait()
+
 	if waitErr != nil {
-		// Check if cancelled by context (Ctrl+C)
-		if ctx.Err() != nil {
+		// exit code 1 = cancelled (--on-cancel=error)
+		if exitErr, ok := waitErr.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
 			return "", ErrCancelled
-		}
-		// Check if user cancelled (exit code 130 = Ctrl+C, exit code 1 = ESC/no selection)
-		if exitErr, ok := waitErr.(*exec.ExitError); ok {
-			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
-				// User cancelled
-				return "", ErrCancelled
-			}
 		}
 		return "", fmt.Errorf("peco failed: %w", waitErr)
 	}
@@ -162,11 +148,7 @@ func MultiSelect(items []string) ([]string, error) {
 
 // multiSelectWithFzf uses fzf for multi-select
 func multiSelectWithFzf(items []string) ([]string, error) {
-	// Create context that cancels on interrupt signal
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	cmd := exec.CommandContext(ctx, "fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
+	cmd := exec.Command("fzf", "--multi", "--prompt=Select worktrees to remove (Space to select, Enter to confirm): ")
 
 	// Connect to TTY for interactive mode
 	tty, err := os.OpenFile("/dev/tty", os.O_RDWR, 0)
@@ -210,17 +192,12 @@ func multiSelectWithFzf(items []string) ([]string, error) {
 
 	// Wait for fzf to finish
 	waitErr := cmd.Wait()
+
 	if waitErr != nil {
-		// Check if cancelled by context (Ctrl+C)
-		if ctx.Err() != nil {
-			fmt.Println("\nCancelled.")
-			return []string{}, nil
-		}
-		// Check if user cancelled (exit code 130 = Ctrl+C, exit code 1 = ESC/no selection)
+		// exit code 1 = ESC, exit code 130 = Ctrl+C
 		if exitErr, ok := waitErr.(*exec.ExitError); ok {
-			if exitErr.ExitCode() == 130 || exitErr.ExitCode() == 1 {
-				// User cancelled, return empty selection
-				return []string{}, nil
+			if exitErr.ExitCode() == 1 || exitErr.ExitCode() == 130 {
+				return nil, ErrCancelled
 			}
 		}
 		return nil, fmt.Errorf("fzf failed: %w", waitErr)
@@ -265,9 +242,7 @@ func multiSelectWithPeco(items []string) ([]string, error) {
 		if err != nil {
 			// Check if user cancelled with Ctrl+C
 			if errors.Is(err, ErrCancelled) {
-				// Ctrl+C means complete cancellation, return empty selection
-				fmt.Println("\nCancelled.")
-				return []string{}, nil
+				return nil, ErrCancelled
 			}
 			// Other errors
 			return nil, err
