@@ -169,3 +169,106 @@ $ gw rm
 # fzf: スペースキーで複数選択 → エンターで削除確認 → 削除実行
 # peco: 1つずつ選択、"Done"で確定 → 削除確認 → 削除実行
 ```
+
+### `gw ln`
+
+gitignoreされているファイルをworktree間で共有するためのコマンド。
+
+#### 概要
+
+- 共有ファイルの実体は `~/.worktrees/{repo}/.gw-links/` に保存
+- 各worktreeからはシンボリックリンクでアクセス
+- シンボリックリンクは絶対パスで作成
+
+#### サブコマンド
+
+##### `gw ln add <path>`
+
+ファイルまたはディレクトリを共有対象として登録する。
+
+###### 動作
+
+1. 指定されたパスが存在するか確認（存在しない場合はエラー）
+2. `~/.worktrees/{repo}/.gw-links/` ディレクトリがなければ作成
+3. 対象ファイル/ディレクトリを `.gw-links/` に移動
+4. 元の場所にシンボリックリンクを作成（絶対パス）
+
+###### 例
+
+```bash
+$ gw ln add .env
+# .env を ~/.worktrees/gw/.gw-links/.env に移動
+# 現在のworktreeに .env → ~/.worktrees/gw/.gw-links/.env のシンボリックリンクを作成
+
+$ gw ln add tmp/cache
+# tmp/cache ディレクトリを ~/.worktrees/gw/.gw-links/tmp/cache に移動
+# 現在のworktreeに tmp/cache → ~/.worktrees/gw/.gw-links/tmp/cache のシンボリックリンクを作成
+```
+
+###### 注意
+
+- glob パターンは非対応（ファイル・ディレクトリのパスのみ）
+- 既存のworktreeには適用されない（新規worktree作成時のみ自動リンク）
+
+##### `gw ln ls`
+
+共有ファイルの一覧を表示する。
+
+###### 動作
+
+1. `~/.worktrees/{repo}/.gw-links/` 内のファイル・ディレクトリを再帰的にリスト
+2. 相対パス形式で表示（例: `.env`、`tmp/cache/data.json`）
+
+###### 例
+
+```bash
+$ gw ln ls
+.env
+tmp/cache
+node_modules
+```
+
+##### `gw ln rm`
+
+共有ファイルの登録を解除する。
+
+###### 動作
+
+1. `.gw-links/` 内のファイル一覧を表示
+2. インタラクティブな選択UI（peco/fzf）で削除対象を選択
+3. 選択されたファイル/ディレクトリをメインworktreeに移動
+   - メインworktree = `git worktree list` で最初に表示されるworktree
+   - メインworktreeのシンボリックリンクを実体ファイルで置き換え
+4. `.gw-links/` から削除
+
+###### 注意
+
+- 他のworktreeのシンボリックリンクは壊れる（リンク切れになる）
+- 各worktreeからの削除は行わない
+
+#### worktree作成時の動作
+
+`gw add` または `gw pr checkout` でworktreeを作成する際：
+
+1. `.gw-links/` 内の各ファイル/ディレクトリに対してシンボリックリンクを作成
+2. リンク対象のパスに既にファイルが存在する場合は警告を出してスキップ
+   - worktree作成自体は続行する
+
+#### ディレクトリ構成
+
+```
+~/.worktrees/
+└── {repo}/
+    ├── .gw-links/              # 共有ファイルの実体
+    │   ├── .env
+    │   ├── tmp/
+    │   │   └── cache/
+    │   └── node_modules/
+    ├── user-2025-11-30-feature-a/   # worktree
+    │   ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
+    │   ├── tmp/
+    │   │   └── cache -> ~/.worktrees/{repo}/.gw-links/tmp/cache
+    │   └── ...
+    └── user-2025-11-30-feature-b/   # worktree
+        ├── .env -> ~/.worktrees/{repo}/.gw-links/.env
+        └── ...
