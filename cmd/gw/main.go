@@ -215,6 +215,19 @@ func runRM(args []string) error {
 		}
 	}
 
+	// Get default branch name
+	defaultBranch, err := branch.GetDefaultBranch()
+	if err != nil {
+		return err
+	}
+
+	// Check if default branch worktree is selected
+	for _, wt := range selectedWorktrees {
+		if wt.Branch == defaultBranch {
+			return fmt.Errorf("cannot remove worktree for default branch %q", defaultBranch)
+		}
+	}
+
 	// Show what will be deleted
 	fmt.Printf("\nThe following worktrees will be removed:\n")
 	for _, wt := range selectedWorktrees {

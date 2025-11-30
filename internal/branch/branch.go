@@ -68,3 +68,14 @@ func GetCurrentBranch() (string, error) {
 	}
 	return strings.TrimSpace(string(output)), nil
 }
+
+// GetDefaultBranch returns the default branch name from git config
+func GetDefaultBranch() (string, error) {
+	cmd := exec.Command("git", "config", "--get", "init.defaultBranch")
+	output, err := cmd.Output()
+	if err != nil {
+		// If not configured, fall back to "main"
+		return "main", nil
+	}
+	return strings.TrimSpace(string(output)), nil
+}
