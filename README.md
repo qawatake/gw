@@ -13,32 +13,11 @@ A convenient command-line tool to manage git worktrees efficiently.
 
 ## Requirements
 
-- Go 1.24 or later
 - Git
 - GitHub CLI (`gh`) (for `gw pr checkout` command)
 - peco (for `gw cd` command)
 - fzf (for `gw rm` command, optional - falls back to peco)
 - vim or $EDITOR (for `gw add` command)
-
-### Installing dependencies
-
-**macOS:**
-```bash
-brew install gh peco fzf
-```
-
-**Linux:**
-```bash
-# GitHub CLI
-# See https://github.com/cli/cli/blob/trunk/docs/install_linux.md
-
-# peco
-go install github.com/peco/peco/cmd/peco@latest
-
-# fzf
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
-```
 
 ## Installation
 
@@ -75,7 +54,7 @@ Create a new branch and worktree with interactive naming.
 $ gw add
 # Opens your editor (vim by default)
 # Enter branch name, e.g., "feature-login"
-# Creates branch: sample-user/2025/11/24/feature-login
+# Creates branch: qawatake/2025/11/24/feature-login
 # Creates worktree at: ~/.worktrees/gw/2025-11-24-feature-login/gw
 ```
 
@@ -89,9 +68,9 @@ Display all worktrees sorted by date (newest first).
 
 ```bash
 $ gw list  # or gw ls
-sample-user/2025/11/24/feature-login    ~/.worktrees/gw/2025-11-24-feature-login/gw
-sample-user/2025/11/23/bugfix-auth      ~/.worktrees/gw/2025-11-23-bugfix-auth/gw
-main                                          ~/src/myproject
+qawatake/2025/11/24/feature-login  ~/.worktrees/gw/2025-11-24-feature-login/gw
+qawatake/2025/11/23/bugfix-auth    ~/.worktrees/gw/2025-11-23-bugfix-auth/gw
+main                                  ~/src/myproject
 ```
 
 ### `gw cd`
@@ -187,36 +166,6 @@ export GW_BRANCH_PREFIX="feature/{date}/"
 ```
 
 The `{date}` placeholder will be replaced with the current date in `YYYY/MM/DD` format.
-
-## Examples
-
-### Creating a new feature worktree
-
-```bash
-$ gw add
-# Enter "user-authentication" in editor
-# Creates: sample-user/2025/11/24/user-authentication
-# Path: ~/.worktrees/gw/2025-11-24-user-authentication/gw
-```
-
-### Switching between worktrees
-
-```bash
-$ gw cd
-# Select from list using peco
-$ pwd
-/Users/username/.worktrees/gw/2025-11-24-user-authentication/gw
-```
-
-### Cleaning up old worktrees
-
-```bash
-$ gw rm
-# With fzf: Select multiple worktrees with Space, press Enter
-# With peco: Select one at a time, choose "Done" when finished
-# Confirm with 'y'
-# Selected worktrees and their branches are removed
-```
 
 ## How it works
 
