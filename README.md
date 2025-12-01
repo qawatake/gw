@@ -149,6 +149,11 @@ $ gw ln add node_modules
 $ gw ln ls
 # List shared files/directories
 
+$ gw ln pull
+# Pull missing shared files into current worktree
+# Creates symlinks for files registered in .gw-links.txt that don't exist yet
+# Skips files that already exist (with warning)
+
 $ gw ln rm
 # Interactively remove a file from sharing
 ```
